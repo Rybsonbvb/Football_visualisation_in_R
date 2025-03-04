@@ -1,0 +1,697 @@
+---
+title: "Kibice w piłce nożnej"
+author: "Igor Rybinski"
+date: "2023-12-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+### Wprowadzenie
+Piłka nożna od zawsze była integralną częścią polskiej kultury sportowej, jednak w ostatnich latach obserwuje się różnorodne problemy zarówno na poziomie drużyn klubowych, jak i reprezentacji narodowej. W ramach tego projektu skoncentruję się na analizie wpływu kibiców na wyniki w piłce nożnej, porównując zarówno aspekty frekwencyjne, jak i sportowe naszej rodzimej ligi z innymi ligami. Sprawdzę co warto wiedzieć idąc na stadion oraz porównam gre drużyn na własnym stadionie.
+
+### Dane
+Dane do analizy pozyskałem poprzez web scraping witryny transfermarkt.pl. Niestety, nie były one dostępne w pożądanej formie, dlatego musiałem połączyć informacje z dwóch podstron. Pierwsza z tych podstron dotyczyła danych na temat kibiców. Zawierała informacje takie jak nazwa klubu, pojemność stadionu, łączna liczba widzów w sezonie, średnia liczba widzów na mecz oraz średnie wykorzystanie stadionu w sezonie.
+W procesie scrapingu, w pętli, dodawałem kolumny do każdej takiej tabeli. Kolumnę 'Kraj' reprezentują informację o tym, z którego kraju pochodzi dana liga, którą aktualnie scrapuję. Dodatkowo, kolumnę 'Sezon' zawierającą informacje o konkretnym sezonie, ponieważ każda liga miała swoje dane rozmieszczone na innej podstronie w zależności od sezonu. Z tego etapu powstała mi jedna wielka tabela dotycząca kibiców. Druga tabela była pobierana w podobny sposób, reprezentowała ona gre zespołu. Pobrałem tabele dotyczącą gry druzyn na własnym stadionie w odpowiednich sezonach. Problemem w tej czeęci danych było to, że nazwy klubów były skrócone czyli w innym formacie niż w tabeli z frekwencjami. Dlatego uzywając metody web crawlingu  przeanalizowałem podstrony o jedną głębość dotyczące danego klubu i z tamtąd scrapowałem pełne nazwy klubów. Po zastosowaniu tej metody nazwy klubów powinny być identyczne w obu tabelach poza kilkoma przypadkami które naprawiłem już "ręcznie".
+Punkty zdobyte przez drużynę (za wygraną 3 punkty, remis 1 punkt, za porażkę 0) policzyłem samodzielnie, a nie zgodnie ze stroną, ponieważ istniały wyjątki, gdzie kluby były karane przez związek ligi odjęciem punktów, np. za nieprawidłowości finansowe, a w mojej analizie chcę się skupić na formie sportowej. Następnie połączyłem obie tabele kolumnami o nazwie klubu oraz sezonu. Dane z mojej tabeli dotyczą wszystkich drużyn biorących udział we wszystkich sezonach od 2012/2013 do aktualnie trwającego czyli 2023/2024 z najwyższych lig krajowych które dla przejrzystości będę zapisywać poprostu nazwą pańśtwa z którego pochodzą.
+
+
+$\bullet$ Polska - PKO Bank Polski Ekstraklasa
+
+
+$\bullet$ Anglia - Premier League
+
+
+$\bullet$ Niemcy - Bundesliga
+
+
+$\bullet$ Włochy - Serie A
+
+
+$\bullet$ Hiszpania - LaLiga
+
+
+$\bullet$ Francja - Ligue 1
+
+
+$\bullet$ Holandia - Eredivisie
+
+
+$\bullet$ Portugalia - Liga Portugal
+
+
+$\bullet$ Belgia - Jupiler Pro League
+
+
+$\bullet$ Brazylia - Campeonato Brasileiro Série A *Sezon 2022/2023 oznacza w rzeczywistości sezon 2023 itd ponieważ w Brazyli jest inny czas rozgrywania zawodów czyli rozgrywki odpowiadające za 2024 jeszcze się nie rozpoczeły  
+
+
+Bilansem goli nazywamy różnice goli strzelonych i straconych.
+
+Ten wieloetapowy proces pozwolił mi skompletować pełne zestawy danych, które teraz mogę wykorzystać do analizy. Przykład 4 wierszy z mojej tabeli ukazałem poniżej.
+```{r, echo=FALSE, message=FALSE}
+library(gt)
+library(dplyr)
+dane1 <- read.csv("Analiza.csv")
+dane1$Punkty <- 3*dane1$Zwyciestwa+dane1$Remisy
+tabelka <- dane1 %>% arrange(Srednia)
+tabs <- tabelka[401:404,]
+tabs %>%
+gt() %>%
+tab_header(title = md("Wygląd analizowanej tabeli"),
+subtitle = "Przykładowe 4 wiersze") %>%
+tab_source_note(source_note = md("Dane pozyskane ze strony https://www.transfermarkt.pl/"))
+```
+
+## Frekwencja na polskich stadionach w ostatnich latach
+```{r,fig.width=10, fig.height=6, echo=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(jpeg)
+
+wykres1 <- dane1 %>% filter(Kraj=="Polska") %>% group_by(Sezon)%>% summarise(Liczba_widzow_na_mecz=round(sum(Liczba_widzow)/sum(Liczba_meczow)))
+wykres1$Sezon <- as.factor(wykres1$Sezon)
+kolory <- viridis_pal(option = "F")(length(wykres1$Sezon))
+ggplot(wykres1,aes(Sezon,Liczba_widzow_na_mecz,fill=Sezon))+theme_minimal()+geom_col(width=0.8,just = 0.5,color="black",alpha=0.65) + scale_fill_manual(values = kolory)+ scale_y_continuous(labels = scales::comma_format(scale = 0.001, suffix = " tys."))+labs(title = "Średnia ilość kibiców na mecz w polskiej Ekstraklasie",y="Liczba kibiców",x="Sezon")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 9, face = "bold")) +theme(legend.position = "none")
+
+
+```
+
+Wykres przedstawia średnią ilość kibiców na meczu w polskiej Ekstraklasie na przestrzeni sezonów.
+Można z niego łatwo można wywnioskować, w którym sezonie było zdecydowanie najmniej kibiców na polskich stadionach. Mowa tutaj o sezonie 2020/2021, w którym oczywiście panowała na świecie pandemia koronawirusa, co skutkowało ograniczeniem bądź nawet brakiem możliwości przychodzenia widzów na stadiony. W poprzednich latach średnia frekwencja na meczach w Polsce wynosiła pomiędzy 8 a 10 tysięcy osób. Zauważyć można także, że po latach pandemicznych w Polsce obserwuje się tendencję wzrostową, a z sezonu na sezon średnia liczba widzów rośnie.
+
+W obecnej kampanii (2023/2024) średnia liczba widzów przekracza nawet nieznacznie 10 tysięcy, a w mediach pojawia się mowa o tzw. 'modzie na Ekstraklasę'. Warto jednak zaznaczyć, że dane z tego sezonu nie są identyczne jak w poprzednich latach, gdyż pochodzą one z 27 grudnia 2023 roku, czyli z około połowy meczów w sezonie Ekstraklasy.
+
+Być może wzrost średniej frekwencji jest spowodowany tym, że kibice są bardziej zainteresowani początkiem sezonu, gdyż czekają na rozgrywki kilka miesięcy podczas przerwy wakacyjnej, bądź po prostu pogoda w miesiącach od lipca do grudnia bardziej sprzyja osobom wybierającym się na stadion.
+
+## Frekwencja w polskich klubach Ekstraklasy
+```{r,fig.width=14, fig.height=11, echo=FALSE, message=FALSE}
+library(gridExtra)
+library(ggimage)
+library(scales)
+library(dplyr)
+library(ggplot2)
+library(jpeg)
+library(grid)
+library(plotly)
+
+zdj_eks <- readJPEG("Ekstraklasa.jpg")
+wykres2 <- dane1 %>%
+  filter(Kraj == "Polska")%>% select(Klub,Nazwa_stadionu,Liczba_widzow,Liczba_meczow)%>% group_by(Klub,Nazwa_stadionu)%>%summarise(srednia=round( sum(Liczba_widzow)/sum(Liczba_meczow)),.groups = 'drop')%>%arrange(srednia)
+
+wykres2$sciezka_do_obrazka <- paste0("E:/Metody wizualizacji/", wykres2$Klub, ".png")
+wykres2$kolory2 <- c("black","white","lightgreen","red","orange","violet","lightcoral","darkgreen","darkblue","blue","darkgoldenrod","grey","black","green","red","#B87333","#FF4500","lightpink","lightblue","red","yellow","maroon","yellow","#FFFF00","white","#990000","darkgreen","lightgreen","red","green","blue")
+
+g1 <- ggplot(wykres2,aes(x=reorder( Klub,+srednia),y=srednia,fill=Klub))+
+  scale_fill_manual(breaks = wykres2$Klub,values = wykres2$kolory2)+annotation_custom(rasterGrob(zdj_eks, width = unit(1,"npc"),height = unit(1,"npc")))+geom_col(width=0.8,just = 0.5,color="black",alpha=0.65)+theme(plot.margin=unit(c(0,0,0,0), "mm"),axis.text.y = element_text(face = "bold"),legend.position = "none",axis.title.x = element_blank(), axis.title.y = element_blank())+geom_image(aes(image=sciezka_do_obrazka),size=0.018,asp=1.5)+geom_label(aes(label=srednia),hjust=1.5,color="black",fill="white",size=4,label.padding = unit(0.3,"lines")) +coord_flip() +labs(title = "Średnia frekwencja na meczach w poszczególnych klubach ekstraklasy w ostatnich 12 sezonach")
+
+wykres3 <- dane1 %>% filter(Kraj == "Polska"& Sezon=="2023/2024")
+cale <- sum(wykres3$Liczba_widzow)
+wykres3 <- wykres3 %>% select(Klub,Nazwa_stadionu,Liczba_widzow) %>%group_by(Klub,Nazwa_stadionu) %>%summarise(suma=sum(Liczba_widzow),.groups = 'drop')%>% mutate(wplyw=round(100*(suma/cale),2))%>%arrange(wplyw) 
+wykres3$sciezka_do_obrazka <- paste0("E:/Metody wizualizacji/", wykres3$Klub, ".png")
+
+g2 <- wykres3 %>%
+ ggplot(aes(x = "", y = wplyw, fill = Klub)) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  scale_fill_manual(breaks = wykres3$Klub)+
+  geom_bar(stat = "identity", width = 1, color = "black")  +
+  theme_minimal() 
+fig <-  plot_ly(wykres3, labels = ~Klub, values = ~wplyw, type = 'pie', text = ~Klub, hoverinfo = 'text+percet') %>%
+  layout(title = 'Wpływ Polskich klubów na sprzedaż biletów w ostatnich 12 latach')
+
+fig <- fig %>% layout(title = 'Wpływ polskich klubów na sprzedaż biletów w aktualnym sezonie 2023/2024',
+         xaxis = list(showgrid = TRUE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = TRUE, zeroline = FALSE, showticklabels = FALSE), showlegend = FALSE)
+
+g1
+
+```
+
+Kolejnym aspektem do rozważenia jest średnia liczba kibiców na mecz w poszczególnych klubach Ekstraklasy w ciągu ostatnich 12 sezonów. W pierwszej kolejności należy uwzględnić fakt, że dla klubów uczestniczących w rozgrywkach Ekstraklasy w sezonach pandemicznych, wartości te mogą być nieco zaniżone w porównaniu do tych, które wtedy nie uczestniczyły w tych rozgrywkach.
+
+Analizując wykres, można zauważyć, że Legia Warszawa oraz Lech Poznań to kluby, które wyraźnie przyciągały największą średnią liczbę kibiców na mecz. Oba zespoły brały udział we wszystkich sezonach pandemicznych, co sugeruje, że cieszą się one największym uznaniem i gromadzą największe rzesze kibiców na swoim stadionie. W konsekwencji są one kluczowe z punktu widzenia marketingowego dla Ekstraklasy, generując najwięcej przychodów z biletów i przyciągając największą widownię, co stanowi istotne informacje dla potencjalnych sponsorów.
+
+Dodatkowo, obie te drużyny odnoszą również sukcesy sportowe. Warto zauważyć interesujące dane dotyczące Wisły Kraków oraz Lechii Gdańsk, które zajmują trzecie i czwarte miejsce pod względem średniej liczby kibiców. Aktualnie obie te drużyny grają jednak w niższej lidze, co sugeruje, że dla zwiększenia sprzedaży biletów i oglądalności Ekstraklasy korzystniejsze byłoby, gdyby obie te marki uczestniczyły w wyższej lidze.
+
+Nieco intrygującą sytuację prezentuje Raków Częstochowa, obecny mistrz Polski, którego potencjał marketingowy jest ograniczony przez pojemność stadionu. Mimo wysokiego poziomu sportowego, wartość marketingowa tego klubu nie spełnia oczekiwań.
+```{r, echo=FALSE,fig.align="center", message=FALSE,fig.width=8, fig.height=8}
+fig %>%
+layout(font = list(size = 8))
+```
+Na przedstawionym wykresie przedstawiono procentowy wpływ na sprzedaż biletów w obecnym sezonie 2023/2024. Zauważalne jest, że dane z tego sezonu wyraźnie korespondują z średnią liczbą kibiców z ostatnich 12 lat, co wskazuje, że to Legia Warszawa i Lech Poznań stanowią główny napęd dla sprzedaży biletów. Można z tego wywnioskować, że obecnie mecze tych drużyn cieszą się największym zainteresowaniem, co potwierdza ich dominującą rolę jako motory napędowe w kontekście sprzedaży biletów.
+
+## Frekwencja w innych krajach
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+library(gganimate)
+library(cowplot)
+library(dataRetrieval)
+library(plotly)
+library(gridExtra)
+library(magick)
+
+wykres4 <- dane1 %>%filter(Kraj!="Brazylia") %>% group_by(Sezon,Kraj) %>% summarise(Liczba_widzow_na_mecz=round(sum(Liczba_widzow)/sum(Liczba_meczow)))%>%  mutate(Kraj_Sezon = paste(Kraj, Sezon, sep = "_"))%>%arrange(Sezon)
+sezony <- unique(wykres4$Sezon)
+czas <- c(12:23)
+wykres4$Sezon <- gsub("\\/", "", wykres4$Sezon)
+
+wykres4$Sezon <- as.numeric(wykres4$Sezon)
+
+g4 <- ggplot(wykres4,aes(x=Sezon,y=Liczba_widzow_na_mecz,color=Kraj,group=Kraj))+geom_line()+geom_point() +scale_color_viridis(discrete = TRUE) +theme_minimal() +
+  # gganimate specific bits:
+     transition_reveal(Sezon) +
+  scale_x_continuous(breaks = c(20122013,20132014,20142015,20152016,20162017,20172018,20182019,20192020,20202021,20212022,20222023,20232024), labels = sezony)+ scale_y_continuous(labels = scales::comma_format(scale = 0.001, suffix = " tys."))+labs(title = "Zmiany średniej liczby widzów na mecz na przestrzeni lat",y="Średnia liczba widzów na mecz")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 6, face = "bold"))+ 
+  scale_color_manual(values = c("red", "yellow", "blue", "purple", "orange", "black","pink" , "cyan","green" ))
+
+ frames <- length(unique(wykres4$Sezon))
+animated_plot <- animate(g4,nframes = frames * 10, fps = 10)
+
+
+wykres4 <- dane1 %>%filter(Kraj!="Brazylia")%>% group_by(Sezon,Kraj) %>% summarise(Liczba_widzow_na_mecz=round(sum(Liczba_widzow)/sum(Liczba_meczow)))%>%  mutate(Kraj_Sezon = paste(Kraj, Sezon, sep = "_"))%>%arrange(Sezon)
+g5 <- ggplot(wykres4,aes(x=Sezon,y=Liczba_widzow_na_mecz,color=Kraj,group=Kraj))+geom_point()+geom_line() +scale_color_viridis(discrete = TRUE) +theme_minimal() +scale_y_continuous(labels = scales::comma_format(scale = 0.001, suffix = " tys."))+labs(title = "Zmiany średniej liczby widzów na mecz na przestrzeni lat",y="Średnia liczba widzów na mecz")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 7, face = "bold"))+ 
+  scale_color_manual(values = c("red", "yellow", "blue", "purple", "orange", "black","pink" , "cyan","green" ))
+
+
+g5 <- ggplotly(g5)
+animated_plot
+```
+Przedstawiony wykres ilustruje zmianę średniej liczby kibiców w ostatnich 12 sezonach we wszystkich analizowanych europejskich ligach. Oczywiście, pierwszym zauważalnym elementem jest rok pandemii. W sezonie 2020/2021 wszystkie wartości są zbliżone, różniąc się jedynie ze względu na potencjalne różnice w restrykcjach związanych z COVID-19 w poszczególnych krajach. Szczególnie interesujący jest jednak sezon 2021/2022, w którym większość krajów utrzymywała poważne restrykcje, zwłaszcza na początku sezonu. Niemniej jednak, w Anglii średnia liczba kibiców wynosiła mniej więcej tyle, co w latach przed pandemią koronawirusa, co może sugerować, że Anglicy najwcześniej powrócili do "normalności".
+```{r,fig.align="center",fig.width=9, fig.height=5, message=FALSE}
+g5
+```
+To, co może być szczególnie interesujące, to fakt, że Niemcy mogą się poszczycić najwyższą średnią liczbą kibiców na stadionach. Może to wynikać z faktu, że w porównaniu do innych lig, w niemieckich stadionach zezwala się na trybuny stojące, które pomieszczą większą liczbę kibiców niż trybuny siedzące. Oczywiście, pasja i zainteresowanie niemieckich kibiców piłkarskich również odgrywają kluczową rolę.
+
+Warto zauważyć, że przez wiele lat nasza Ekstraklasa zajmowała ostatnie miejsce w porównaniu do innych lig, ale miała niewiele do nadrobienia względem ligi portugalskiej czy belgijskiej. Jednak w obecnym sezonie frekwencja w polskiej lidze wydaje się być lepsza niż w tych dwóch krajach. Polska jest jedynym z analizowanych krajów, w którym średnia frekwencja w bieżącym sezonie jest wyższa niż w sezonie 2022/2023. To może być optymistyczny sygnał na przyszłość.
+
+Duże spadki frekwencji w zagranicznych ligach mogą być spowodowane zarówno mniejszą dostępną liczbą miejsc, jak i po prostu mniejszym zainteresowaniem. Warto monitorować, czy Polska utrzyma tendencję zwiększającą frekwencję, co może być związane z rosnącym zainteresowaniem i zaangażowaniem kibiców w wydarzenia piłkarskie.
+
+## Podsumowanie frekwencji
+```{r,fig.align="center", echo=FALSE,fig.width=10, message=FALSE}
+library(leaflet)
+colors <- colorRampPalette(c("blue", "red"))(n = 100)
+wykres6 <- dane1 %>% filter(Sezon!="2020/2021" | Kraj=="Brazylia") %>% filter(!(Sezon == "2019/2020" & Kraj == "Brazylia")) %>% group_by(Kraj)%>%
+  summarise(suma_widzow=sum(Liczba_widzow),suma_pojemnosci=sum(Pojemnosc*Liczba_meczow)) %>%mutate(frekw=round(100*(suma_widzow/suma_pojemnosci),2))
+locations <- data.frame(
+  Kraj=c("Anglia","Belgia","Brazylia","Francja","Hiszpania","Holandia","Niemcy","Polska","Portugalia","Włochy"),
+  Country_full_name = c("Anglia","Belgia","Brazylia","Francja","Hiszpania","Holandia","Niemcy","Polska","Portugalia","Włochy"),
+  Lat <- c(53.223716,50.790872,-8.997920,47.667878,40.508266,52.271265,51.809409,52.463643,40.218640,42.367551),
+  Lan <- c(-1.748242,4.959704,-49.999680,2.577095,-2.242291,5.981269,11.002563,19.732876,-8.317263,12.795057)
+)
+
+wykres6$formatted_suma_widzow <- format(wykres6$suma_widzow, big.mark = ",")
+
+map_data <- merge(wykres6, locations, by = "Kraj")
+
+map <- leaflet(data = map_data) %>% 
+  setView(lng = 2, lat = 50, zoom = 4.2) %>% 
+  addTiles() %>% 
+  addCircleMarkers(~Lan, ~Lat, radius = ~sqrt(suma_widzow)*0.0037,
+                   color = ~colors[findInterval(frekw, seq(min(map_data$frekw), max(map_data$frekw), length.out = 100))],
+                   stroke = TRUE,
+                   fillOpacity = 0.6,
+                   label = ~Kraj,
+                   labelOptions =labelOptions(nonHide = TRUE, direction = "right"), 
+                   popup = paste("Kraj: ", map_data$Kraj, "<br>",
+                  "Suma Widzów: ", map_data$formatted_suma_widzow, "<br>",
+                  "Frekwencja: ", map_data$frekw, "%"),
+                  dashArray = 1
+                   
+  )
+map
+```
+Mapa interaktywna z zaznaczonymi kołami prezentuje analizowane najwyższe ligi krajowe. Po kliknięciu na dane koło pojawiają się szczegółowe informacje. Im większa średnica koła, tym liga ma większą zsumowaną liczbę kibiców na wszystkich meczach w ostatnich 12 sezonach (z wyłączeniem sezonu w pełni pandemicznego 2020/2021), co można interpretować jako ilość sprzedanych biletów.
+
+Zauważalne jest, że najwięcej biletów sprzedała angielska Premier League, osiągając imponującą liczbę 143,984,220. Na drugim miejscu jest niemiecka Bundesliga z wynikiem 125,664,555 biletów. Jednakże, istotne jest uwzględnienie, że nie każda liga rozgrywa tyle samo spotkań, co może wpływać na różnice między tymi dwoma ligami. W Premier League jedna drużyna rozgrywa 38 meczów, podczas gdy w Bundeslidze jest to 34 spotkania.
+
+Kolory kół, oznaczają procent sprzedanych biletów z analizowanych sezonów. Na tej podstawie można wyciągnąć wnioski dotyczące stopnia wykorzystania infrastruktury stadionowej i określić, gdzie warto rozważyć inwestycje w powiększenie trybun, a gdzie obecne są one zbyt obszerne. Dla ligi holenderskiej, angielskiej i niemieckiej byłoby korzystne rozważenie rozbudowy niektórych stadionów, ponieważ procentowe wypełnienie stadionów przekracza 82%.
+
+Niestety, Polska prezentuje się mniej korzystnie, z niskim wykorzystaniem trybun, co potwierdza powszechne widoki pustych miejsc na stadionach. W kontekście innych lig, portugalska i brazylijska również nie mogą pochwalić się wysokim stopniem wykorzystania trybun. Wnioskiem może być potrzeba zastanowienia się nad strategiami zwiększenia atrakcyjności meczów i zainteresowania kibiców w tych ligach.
+
+## Zależności między kibicami a wynikami
+```{r,fig.width=7, fig.height=6, message=FALSE}
+library(ggcorrplot)
+correlation_num_variables <- dane1 %>% filter(Sezon!="2020/2021" | Kraj=="Brazylia") %>% filter(!(Sezon == "2019/2020" & Kraj == "Brazylia"))%>%
+  select(-c("Klub","Nazwa_stadionu","Pojemnosc","Sezon","Kraj","Liczba_meczow"))
+correlation_num_variables <- scale(correlation_num_variables)
+
+colnames(correlation_num_variables) <- c("Liczba kibicow","Średnia kibiców na mecz","Wykorzystanie stadionu","Zwycięstwa","Remisy","Porazki","Gole zdobyte","Gole stracone","Bilans goli","Punkty")
+corr_example <- round(cor(correlation_num_variables),2)
+p_mat_example <- cor_pmat(correlation_num_variables)
+ggcorrplot(corr = corr_example, lab = TRUE, p.mat = p_mat_example)
+```
+
+Sprawdzając zależności skupiłem się na sezonach od 2012/2013 do 2023/2024 z wyłączniem sezonu 2020/2021 (pandemicznego).Wyselekcjonowałem do macierzy korelacji tylko potrzebne wartości liczbowe z mojej tabeli. Wszystkie te wartości przeskalowałem oraz użyłem wskaźnika p.mat który przekreślił mi relacje liczbowe które nie są istotne statystycznie. Dodatnia korelacja oznacza, że im jedna cecha rośnie tym druga też. Ujemna zaś oznacza, że jeśli jedna rośnie to druga maleje. Obserwacje:
+
+$\bullet$ Liczba kibiców bardzo mocno koreluje ze średnią liczbą kibiców co jest oczywiście logiczne. Im większa liczba kibiców w sezonie tym większa średnia kibiców na mecz. Zmienna ta koreluje też z liczbą zwycięstw, punktów, zdobytych goli i bilansem goli na poziomie około 0.5. Oznacza to, że w wielu przypadkach im więcej kibiców przyszło w sezonie na mecze tym wyniki były lepsze ale może to działać w drugą stronę czyli,że to lepiej grające drużyny przyciągały większą liczbę kibiców. Ciężko jednoznacznie swierdzić ale istnieje pewne powiązanie między tymi zmiennymi co myślę, że warto wziąć po uwage. Sytuacja dla zmiennej oznaczającej średnią liczbe kibiców jest analogiczna.
+
+$\bullet$ Bardzo ważną odpowiedź dała ta macierz korelacji na temat wypełnienia procentowego stadionu. Zmienna ta nie koreluje z żadnymi aspektami sportowymi więc na podstawie tej analizy można jednoznacznie stwierdzić, że nie wpływa ona w ogóle na wyniki sportowe.
+
+$\bullet$ Analizując gre druzyn na własnym stadionie można zauważyć, że liczba zwycięstw jest bardzo,bardzo ważna jeśli chce się zdobywac punkty. Korelacja ta wynosi aż 0.98. To samo można powiedzieć wpływie zwycięstw na liczbe zdobytych goli i bilans goli. Często również duża liczba zwycięstw oznacza małą liczbe straconych goli oraz porażek. Czyli, żeby często wygrywać na swoim stadionie trzeba strzelać dużo goli i próbować mało tracić.
+
+$\bullet$ Liczba remisów nie wpływa na nic znacząco.
+
+$\bullet$ W liczbie porażek sytuacja jest dokładnie odwrtona co w liczbie zwyciestw.Jednak zdecydowanie ciekawą obesrwacją jest to, że korelacja jej z liczbą punktów jest na poziomie -0.6, a zwycięstw przecież aż na poziomie 0.98 co może sugerować,że ważniejsze dla zdobytej liczby punktów jest zwycięstwo i niż ewentualna porażka. Oznacza to tyle, że drużynie gopodarza bardziej opłaca się ryzykować u siebie i grać zawsze o pełną pule punktów.
+
+$\bullet$ Im lepszy bilans bramkowy tym większa liczba punktów.
+
+$\bullet$ Najciekawszą obserwacją jest jednak moim zdaniem wpływ zdobytych goli i straconych goli na punkty. W przypadku korelacji goli strzelonych korelacja wynosi aż 0.84 a goli straconych -0.39. Mówi to o tym,że jeśli chce się by liczba punktów zdobytych na własnym stadionie była wyższa trzeba strzelać dużo goli i nie koniecznie martwić się o ich tracenie. To bardzo ciekawa obserwacja która obala mit mówiący o tym jak ważna jest obrona do zdobywania punktów, ponieważ to atak odgrywa większą role w ich zdobywaniu.
+
+Poniżej mamy wypisane w tabeli najmocniej skorelowane zmienne:
+```{r, message=FALSE,warning=FALSE}
+library(gt)
+data = data.frame(
+  Zmienna_1 = c("Liczba kibiców", "Liczba kibiców", "Liczba kibiców", "Liczba kibiców","Liczba kibiców","Średnia kibiców na mecz","Średnia kibiców na mecz","Średnia kibiców na mecz","Średnia kibiców na mecz","Średnia kibiców na mecz","Zwycięstwa","Zwycięstwa","Zwycięstwa","Zwycięstwa","Zwycięstwa","Porazki","Porazki","Porazki","Porazki","Gole zdobyte","Gole zdobyte","Gole stracone","Bilans goli"),
+  Zmienna_2 = c("Średnia liczba kibiców na mecz", "Zwycięstwa", "Gole zdobyte", "Bilans goli","Punkty","Zwycięstwa","Porażki","Gole zdobyte","Bilans goli","Punkty","Porażki","Gole zdobyte","Gole stracone","Bilans goli","Punkty","Gole zdobyte","Gole stracone","Bilans goli","Punkty","Bilans goli","Punkty","Bilans goli","Punkty"),
+  Wartość_korelacji = c(0.93, 0.54, 0.57, 0.5,0.57,0.45,-0.36,0.47,0.5,0.46,-0.58,0.84,-0.41,0.87,0.92,-0.48,0.78,-0.79,-0.57,0.84,0.79,-0.66,0.81))
+data <- data %>% arrange(desc(Wartość_korelacji)) %>% filter(abs(Wartość_korelacji)>=0.7)
+data %>% gt()%>%
+    tab_header(title = md("Podsumowanie korelacji"),
+               subtitle = md("Najsilniej skorelkowane zmienne i ich wartości")) %>% data_color(columns = vars(Wartość_korelacji),
+             colors = c("blue", "white", "red"),
+             apply_to = "fill") %>%
+  fmt_number(columns = vars(Wartość_korelacji), decimals = 2)
+```
+## Podział gospodarzy ze względu na poziom sportowy
+Do dalszej analizy zdecydowałem się podzielić gospodarzy ze względu na poziom sportowy. W analizowanych ligach rozgrywa się różną liczbę meczy w ciągu roku. By dane były jednolite dla każdej ligi utowrzyłem zmienne takie jak:
+
+$\bullet$ Zdobyty gol na mecz - Liczba goli zdobytych podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Stracony gol na mecz - Liczba goli straconych podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Punkt na mecz - Liczba zdobytych punktów podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Procent Zwycięstw - Liczba zwycięstw podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Procent Porażek - Liczba porażek podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Procent Remisów - Liczba remisów podzielona przez liczbe rozegranych meczy
+
+$\bullet$ Średni bilans - Bilans bramek podzielony przez liczbe rozegranych meczy
+
+Wszystkie dane przeskalowałem i za pomocą metody kmeans przeklastrowałem moje dane czyli podzieliłem na pewne społeczności. Zdecydowałem się na liczbe trzech klastrów przy których współczynnik SS pokazywał 61.4% co oznacza, że mój podział jest całkiem dobrej jakości.
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+
+library(dplyr)
+library(factoextra)
+
+wykres7 <- dane1 %>% 
+mutate(gole_zdobyte_na_mecz=Gole_zdobyte/Liczba_meczow,Gole_stracone_na_mecz=Gole_stracone/Liczba_meczow,Punkty_na_mecz=Punkty/Liczba_meczow,proc_zwyciestw=(Zwyciestwa/Liczba_meczow)*100,proc_remisow=(Remisy/Liczba_meczow)*100,proc_porazek=(Porazki/Liczba_meczow)*100,sr_bilans=Bilans_goli/Liczba_meczow) %>%
+  select(gole_zdobyte_na_mecz,Gole_stracone_na_mecz,Punkty_na_mecz,proc_zwyciestw,proc_remisow,proc_porazek,sr_bilans)
+#(gole_zdobyte_na_mecz,Gole_stracone_na_mecz,Punkty_na_mecz,"Zwyciestwa","Remisy","Porazki","Bilans_goli")
+  #("Liczba_meczow","Gole_zdobyte","Gole_stracone","Punkty","Zwyciestwa","Remisy","Porazki","Bilans_goli") 
+
+klastry <- scale(wykres7)
+culsters_wss <- fviz_nbclust(klastry, kmeans,method="wss")
+clusters_silhouette <- fviz_nbclust(klastry,kmeans,method="silhouette")
+optimal_cluster <- kmeans(klastry,centers = 3,iter.max = 35)
+#optimal_cluster
+
+fviz_cluster(optimal_cluster,data=klastry,labelsize = 0)
+klastry <- as.data.frame(klastry)
+klastry$Cluster <- optimal_cluster$cluster
+wykres7$Cluster <- optimal_cluster$cluster
+wykres7$Cluster <- as.factor(wykres7$Cluster)
+dane1$Cluster <- optimal_cluster$cluster
+dane1$Cluster <- as.factor(dane1$Cluster)
+w1 <- ggplot(wykres7, aes(x=Cluster,y=gole_zdobyte_na_mecz,fill=Cluster)) +
+ geom_boxplot()+ labs(x="",y="Zdobyty gol na mecz")+theme_minimal()+ theme(legend.position = "none")
+w2 <-ggplot(wykres7, aes(x=Cluster,y=Gole_stracone_na_mecz,fill=Cluster)) +
+ geom_boxplot()+ labs(x="",y="Stracony gol na mecz")+theme_minimal()+ theme(legend.position = "none")
+w3 <-ggplot(wykres7, aes(x=Cluster,y=Punkty_na_mecz,fill=Cluster)) +
+  geom_boxplot()+ labs(x="",y="Punkt na mecz")+theme_minimal()
+w4 <-ggplot(wykres7, aes(x=Cluster,y=proc_zwyciestw,fill=Cluster)) +
+  geom_boxplot()+ labs(x="",y="Procent zwycięstw")+theme_minimal()+ theme(legend.position = "none")
+w5 <-ggplot(wykres7, aes(x=Cluster,y=proc_remisow,fill=Cluster)) +
+  geom_boxplot()+ labs(x="",y="Procent remisów")+theme_minimal()+ theme(legend.position = "none")
+w6 <-ggplot(wykres7, aes(x=Cluster,y=proc_porazek,fill=Cluster)) +
+  geom_boxplot()+ labs(x="",y="Procent porażek")+theme_minimal()+ theme(legend.position = "none")
+w7 <-ggplot(wykres7, aes(x=Cluster,y=sr_bilans,fill=Cluster)) +
+  geom_boxplot()+ labs(x="",y="Średni bilans")+theme_minimal()+ theme(legend.position = "none")
+```
+Oto zależności między klastrami:
+```{r,fig.align="center", echo=FALSE,fig.width=14,fig.height=12, message=FALSE}
+plots <- list(w1,w2,w4,w5,w6,w7)
+grid.arrange(
+  arrangeGrob(
+    w3,
+    ncol = 1,
+    top = textGrob("Zależności", gp = gpar(fontsize = 16))
+  ),
+  arrangeGrob(grobs = plots),
+  nrow = 2
+)
+#grid.arrange(w1,w2,w3,w4,w5,w6,w7,ncol=3)
+```
+
+
+Wnioski można wyciągnąć w prosty sposób, analizując trzy klastry drużyn. Klastr 1 (oznaczony kolorem czerwonym) obejmuje zespoły charakteryzujące się słabymi wynikami na własnym stadionie. Mają one niską liczbę strzelonych bramek, dużo straconych, mało zdobytych punktów, niewiele zwycięstw, średnią liczbę remisów, dużo porażek oraz słaby bilans bramek.
+
+Klastr 2 (oznaczony kolorem zielonym) reprezentuje tzw. "klasę średnią". Drużyny z tego klastra cechują się średnią ilością w różnych kategoriach, natomiast wyróżniają się największą liczbą remisów.
+
+Klastr 3 (oznaczony kolorem niebieskim) obejmuje drużyny, które odnoszą duże sukcesy na swoim stadionie. Charakteryzują się wysoką liczbą strzelonych bramek, niską liczbą straconych, dobrą ilością zdobytych punktów, wysokim procentem zwycięstw, niewielką liczbą remisów, małą ilością porażek oraz bardzo dobrym bilansem bramek.
+
+Te trzy klastry pomagają zrozumieć, jakie cechy wyróżniają drużyny pod względem wyników na własnym stadionie. Klaster 1 reprezentuje drużyny z trudnościami, klaster 2 to zespoły z wynikami przeciętnymi, a klaster 3 to drużyny osiągające sukcesy na swoim terenie.
+
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+h1 <-dane1 %>%filter(Kraj=="Polska") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+
+# Stacked barplot
+k1 <- ggplot(h1, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Polska", x = "Sezon", y = "Liczba zespołów") +theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 6, face = "bold")) 
+k1
+```
+
+Przykładowo, w Polskiej lidze w sezonie 2020/2021 nie było drużyn, które odnosiły znaczące sukcesy na swoim terenie, czyli zaliczały się do klastra charakteryzującego się dominacją na własnym stadionie, reprezentowanego kolorem niebieskim. W związku z tym liga ta prezentowała się dość wyrównanie, bez wyraźnych podziałów między drużynami. Największy podział na górę i dół tabeli wystąpił natomiast w sezonie 2016/2017. Wówczas istniała duża grupa zespołów, które osiągały znaczne sukcesy u siebie, oraz duża grupa, które prezentowały słabsze wyniki na własnym stadionie. Ten podział może sugerować, że liga była zróżnicowana, składając się z silnych i słabych drużyn, co wskazuje na istnienie znacznej różnicy w poziomie między zespołami. Warto zauważyć, że zmiana ogólnej wysokości słupków na wykresie jest związana z modyfikacją formatu rozgrywek i zwiększeniem liczby drużyn biorących udział w Ekstraklasie.
+
+Poniżej znajdują się wykresy dla innych lig:
+```{r,fig.align="center", echo=FALSE,fig.width=14,fig.height=14, message=FALSE}
+h2 <-dane1 %>%filter(Kraj=="Anglia") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k2 <- ggplot(h2, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Anglia", x = "Sezon", y = "Liczba zespołów") + theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h3 <-dane1 %>%filter(Kraj=="Niemcy") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k3 <- ggplot(h3, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Niemcy", x = "Sezon", y = "Liczba zespołów")+ theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold"))  
+h4 <-dane1 %>%filter(Kraj=="Hiszpania") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k4 <- ggplot(h4, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Hiszpania", x = "Sezon", y = "Liczba zespołów") + theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h5 <-dane1 %>%filter(Kraj=="Włochy") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k5 <- ggplot(h5, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Włochy", x = "Sezon", y = "Liczba zespołów")+ theme(legend.position = "none") +theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h6 <-dane1 %>%filter(Kraj=="Francja") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k6 <- ggplot(h6, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Francja", x = "Sezon", y = "Liczba zespołów") + theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h7 <-dane1 %>%filter(Kraj=="Holandia") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k7 <- ggplot(h7, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Holandia", x = "Sezon", y = "Liczba zespołów") + theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h8 <-dane1 %>%filter(Kraj=="Brazylia") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k8 <- ggplot(h8, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Brazylia", x = "Sezon", y = "Liczba zespołów")+ theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h9 <-dane1 %>%filter(Kraj=="Portugalia") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k9 <- ggplot(h9, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Portugalia", x = "Sezon", y = "Liczba zespołów")+ theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+h10 <-dane1 %>%filter(Kraj=="Belgia") %>% group_by(Sezon,Cluster) %>%
+  summarise(liczba_klastrów = n())
+k10 <- ggplot(h10, aes(fill = Cluster, y = liczba_klastrów, x = as.factor(Sezon))) + 
+  geom_bar(position = "stack", stat = "identity") +  theme_minimal()+  scale_color_manual(values = c("red", "green","yellow"))+
+  labs(title = "Belgia", x = "Sezon", y = "Liczba zespołów") + theme(legend.position = "none")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 5, face = "bold")) 
+main_title <- textGrob("Rozkład sił gospodarzy w kolejnych sezonach",
+                       gp = gpar(fontsize = 20, fontface = "bold"))
+
+grid.arrange(k2,k3,k4,k5,k6,k7,k8,k9,k10,ncol=3, top = main_title)
+```
+
+## Bronić u siebie czy atakować?
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+library(rgl)
+library(car)
+library("RColorBrewer")
+ wykresx <- dane1 %>% mutate(sr_goli=Gole_zdobyte/Liczba_meczow,sr_goli_str=Gole_stracone/Liczba_meczow,punkt_na_mecz=Punkty/Liczba_meczow)
+ wykresx$Cluster <- as.factor(wykresx$Cluster)
+# Add a new column with color
+#mycolors <- c('royalblue1', 'darkcyan', 'oldlace')
+#wykresx$color <- mycolors[ as.numeric(wykresx$Kraj) ]
+colors <- c("Słabe kluby","Srednie kluby","Dobre kluby")
+# Plot
+wykresx$color <- colors[as.numeric(wykresx$Cluster)]
+wykres <- plot_ly(x=wykresx$sr_goli, y=wykresx$sr_goli_str, z=wykresx$punkt_na_mecz, type="scatter3d", mode="markers", color= wykresx$color,marker=list(size=3))
+wykres <- layout(
+  wykres,
+  scene = list(
+    xaxis = list(title = "Zdobyty go na mecz"),
+    yaxis = list(title = "Stracony gol na mecz"),
+    zaxis = list(title = "Punkt na mecz")
+  )
+)
+wykres
+```
+Wykres przedstawia zależność zdobytych i straconych goli na punkty. Ta wizualizacja pokrywa się z podziałem klastrowym wedle którego są pokolorowane punkty. Wykres miał na calu sprawdzić czy by mieć więcej punktów na swoim boisku lepiej mało strzelać i mało tracić czy może dużo strzelać i dużo tracić. Wedle wartości korelacji między zmiennymi to ta druga opcja powinna dawać więcej punktów ale z wykresu wynika, że istnieje zbyt dużo wartości odstających od tej zasady więc nie można tego przyjąć jako regułe ale napewno warto wziąć to pod uwage.
+
+## Pieniądze w analizowanych ligach
+```{r,fig.align="center", echo=FALSE, message=FALSE,warning=FALSE}
+library(RColorBrewer)
+library(viridis)
+wykres8 <- dane1 
+wykres8$Kraj <- as.factor(wykres8$Kraj)
+kolory2 <- viridis_pal(option = "H")(length(wykres8$Kraj))
+wykres8 <- wykres8 %>% group_by(Kraj) %>%
+  summarise(suma_widzow=sum(Liczba_widzow),suma_pojemnosci=sum(Pojemnosc*Liczba_meczow),suma_meczow=sum(Liczba_meczow)) %>% mutate(frekwencja=round(100*(suma_widzow/suma_pojemnosci),2)) %>%
+ mutate(srednia_kibicow_na_mecz=round(suma_widzow/suma_meczow)) %>% select(Kraj,frekwencja,srednia_kibicow_na_mecz)
+wykres8$wydatki_mln_euro <- c(20810,1260,1270,6510,7680,1170,6650,103.09,1670,10860)
+  wykres8$wplywy_mln_euro <- c(9690,1860,2810,6850,7200,2710,6120,322.39,3980,9600)
+  wykres8 <- wykres8 %>% mutate(saldo_mln_euro=wplywy_mln_euro-wydatki_mln_euro)
+  g9 <- ggplot(wykres8,aes(x=wydatki_mln_euro,y=wplywy_mln_euro))+geom_point(size=3,color="darkgreen",alpha=0.8)+theme_bw()+
+  geom_text(
+    label=wykres8$Kraj, 
+    nudge_x = 200, nudge_y = 400, 
+    check_overlap = TRUE,
+    color="black"
+    )+ 
+  geom_label(
+    label="Holandia", 
+    x=2650,
+    y=2600,
+    label.padding = unit(0.1, "lines"), # Rectangle size around label
+    label.size = 0.1,
+    color = "black",
+    fill="white",
+  )+labs(title="Łączne wpływy i wydatki do lig z danych krajów w ostatnich 12 latach" ,y="Łączne wpływy do klubów z danego kraju",x="Łączne wydatki klubów z danego kraju")+theme(plot.title = element_text(hjust = 0.5),axis.text = element_text(size = 7, face = "bold"))+
+  scale_y_continuous(labels = function(x) paste0(x/1000, " mld €")) +scale_x_continuous(labels = function(x) paste0(x/1000, " mld €")) 
+
+ g10 <- ggplot(wykres8, aes(x=Kraj, y=saldo_mln_euro)) +
+  geom_segment( aes(x=Kraj, xend=Kraj, y=0, yend=saldo_mln_euro), color="black",linewidth=0.7) +
+  geom_point( color="orange", size=3) +
+  theme_light() +
+  geom_hline(yintercept = 0, size = 1, linetype = "dashed", color = "red")+
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank(),
+     axis.title.x = element_text(color = "black", size = 12, face = "bold", hjust = 0.5, vjust = 0.5),
+    axis.title.y = element_text(color = "black", size = 12, face = "bold", hjust = 0.5, vjust = 0.5))+labs(title ="Saldo finansowe lig w ostatnich 12 latach",y="Saldo")+scale_y_continuous(labels = function(x) paste0(x/1000, " mld €"),breaks = c(-12000,-10000,-8000,-6000,-4000,-2000,0,2000)) 
+g9
+ 
+```
+
+  Powyższy wykres przedstawia zależność między wydatkami lig na transfery (zakup zawodników) a przychodami z transferów, gdzie wartości są zsumowane z ostatnich 12 sezonów. Punkty znajdujące się w skrajnych rogach wykresu reprezentują Polskę i Anglię. Interpretacja tego wykresu może skupiać się na obiegu pieniędzy przeznaczanych na transfery w poszczególnych ligach. W Anglii ten obieg jest zdecydowanie największy, ponieważ kluby z tej ligi inwestują znaczne sumy w zakup drogich piłkarzy, jednocześnie osiągając wysokie przychody ze sprzedaży zawodników. Polska prezentuje się jako skrajny przypadek, gdzie kwoty transferów są stosunkowo niskie, a sprzedaże w porównaniu do innych lig również. Zaskakująco duży obieg pieniędzy związany z transferami występuje również we Włoszech. Jest to interesujące, gdyż choć włoska liga nie jest uważana za drugą najlepszą w Europie, to jednak angażuje znaczne środki w ruch transferowy.
+```{r,fig.align="center"}
+g10
+```
+  
+  Ten wykres z kolei przedstawia Saldo czyli wpływy z transferów odjęte są przez wydatki na nie. Rażące jest przede wszystkim ujemne saldo ligi angielskiej. Ich strata z ostatnich 12 lat wynosi bowiem aż ponad 11 miliardów euro. Innymi ligami z ujemnymi saldami są hiszpańska LaLiga, niemiecka Bundesliga czy Włoska Serie A. Jest to ciekawa obserwacja ponieważ ligi te są uważane za 4 najmocniejsze na świecie. Można zatem wywnioskować, że potężne ligi mają wpływy z innych źródeł takich jak sponsorzy, bilety, pamiątki klubowe i mogą je wydawać np na transfery. Ligami które jednak z transferów zarabiają są Belgia, Brazylia,Francja, Holandia, Polska czy najlepsza w tym aspekcie Portugalia. Te ligi są rozwijającymi się rozgrywkami które dopiero aspirują do światowego topu.
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+library(ggcorrplot)
+wykres9 <- wykres8 %>% select(-"Kraj")
+colnames(wykres9) <- c("Frekwencja","Średnia kibiców na mecz","Wydatki","Wpływy","Saldo")
+wykres9 <- scale(wykres9)
+corr_example1 <- round(cor(wykres9),2)
+p_mat_example1 <- cor_pmat(wykres9)
+new_palette <- c("darkgreen", "white", "darkgoldenrod") 
+ggcorrplot(corr = corr_example1,p.mat = p_mat_example1, lab = TRUE,color=new_palette)
+
+```
+  
+  Powiążmy jednak ten temat z głównym tematem analizy czyli kibicami. Powyższa macierz korelacji przedstawia zależność aspektów finansowych z liczbami dotyczącymi kibiców. Warto wspomnieć, że próbka moich danych w tym temacie nie jest wielka ponieważ dotyczy tylko analizowanych wcześniej rozgrywek. Dlatego wskaźnik p.mat przekreślił troche wartości. Jednak analizowana macierz jasno mówi o tym, że średnia liczba i być może frekwencja (gdyby próbka danych była większa) wpływają na wpływy jak i wydatki. Oznacza to,że im więcej kibiców przychodzi na stadion tym dana liga może więcej wydawać na transfery i mieć też większe wpływy. A z wcześniej analizowanego wykresu wynika,że największe wpływy i wydatki mają najmocniejsze ligi na świecie więc z pewną dozą prawdopodobieństwa można przyjąć, że kibice przychodząc na stadion wpływają na poziom ligi.
+
+## Sportowy aspekt gospodarzy
+```{r,fig.width=20, fig.height=20,,fig.align="center", echo=FALSE, message=FALSE,error = FALSE,warning = FALSE}
+library(fmsb)
+library(RColorBrewer)
+wykres10 <- dane1 
+wykres10$Kraj <- as.factor(wykres10$Kraj)
+wykres10 <- wykres10 %>%group_by(Kraj) %>%  summarise(
+    suma_porazek = sum(Porazki),
+    suma_remisow = sum(Remisy),
+    suma_zwyciestw = sum(Zwyciestwa),
+    suma_punktow = sum(Punkty),
+    suma_meczow = sum(Liczba_meczow),
+    suma_zdobytych_goli = sum(Gole_zdobyte),
+    suma_straconych_goli = sum(Gole_stracone),
+    wspolny_bilans = sum(Bilans_goli)
+  ) %>%
+  mutate(
+    Gol_na_mecz = round((suma_zdobytych_goli / suma_meczow), 4),
+    Stracony_gol_na_mecz = round(suma_straconych_goli / suma_meczow, 4),
+    Punkt_na_mecz = round(suma_punktow / suma_meczow, 4),
+    Sredni_bilans = round(wspolny_bilans / suma_meczow, 4),
+    Procent_zwyciestw =round( suma_zwyciestw / suma_meczow,4),
+    Procent_remisow = round(suma_remisow / suma_meczow,4),
+    Procent_porazek = round(suma_porazek / suma_meczow,4) )%>% select(Kraj,Gol_na_mecz,Stracony_gol_na_mecz,Punkt_na_mecz,Sredni_bilans,Procent_zwyciestw,Procent_remisow,Procent_porazek)
+nazwy <- wykres10$Kraj
+wykres10 <- wykres10 %>% select(-c("Kraj"))
+wykres10 <- as.data.frame(wykres10)
+rownames(wykres10) <- nazwy
+
+colnames(wykres10) <- c("Gol na mecz","Stracony gol na mecz","Punkt na mecz","Średni bilans goli","Procent zwycięstw","Procent remisów","Procent porażek")
+wykres10 <- rbind(rep(2,7) , rep(0,7) , wykres10)
+colors_border <- brewer.pal(10, "Set3")
+colors_in <- alpha(colors_border, 0.1)
+g11 <- radarchart(wykres10, axistype=1 , 
+    #custom polygon
+    pcol=colors_border , pfcol=colors_in , plwd=2 , plty=1,
+    #custom the grid
+    cglcol="black", cglty=1, axislabcol="black", caxislabels=seq(0, 2, 0.5), cglwd=0.8,
+    vlcex=2 )
+legend(  x = 1, 
+  y = 0.6, 
+  legend = rownames(wykres10[-c(1, 2),]), 
+  bty = "n", 
+  pch = 1.8, 
+  col = colors_border, 
+  text.col = "black", 
+   pt.bg = colors_border,  # Kolor wypełnienia kropek w legendzie
+  pt.lwd = 2,    
+  cex = 2, 
+  fill = colors_border,
+  pt.cex = 3)
+g11
+```
+Powyższy wykres przedstawia aspekty sportowe drużyn gospodarzy ze wszystkich analizowanych sezonów. Im punkt jest wysunięty bardziej na zewnątrz tym dany aspekt jest większy w danej lidze. Co jest bardzo ciekawe najlepiej sportowo wyglądają gospodarze z Brazyli mają oni najlepszy średni bilans goli, największy wskaźnik punktu na mecz, największy procent zwycięstw, najmniejszy porażek i co interesujące najmniej straconych goli na mecz ale również i zdobytych. Sumując to wszystko jeśli losowy kibic chce wybrać się na mecz i kibicować gospodarzom, robiąc to w Brazylii najprawdopodobniej będzie świadkiem wygranej tej drużyny jednak po nudnym meczu czyli takim w którym padnie mało goli dla obu drużyn. Jeśli jednak ten sam losowy kibic chciałby zobaczyć dużą ilość goli i nie ważny dla niego jest rezultat gospodarzy, najlepszym dla niego wyborem będzie holenerska Eredivisie w której to gospodarze strzelają najwięcej goli ale również najwięcej ich tracą. Innymi "bramkostrzelnymi" ligami są druga w kolejności niemiecka Bundsliga i belgijska Jupiler Pro League.
+```{r,fig.align="center", echo=FALSE,fig.width=11,fig.height=8, message=FALSE}
+library("lattice")
+wykres11 <- dane1 
+wykres11$Kraj <- as.factor(wykres11$Kraj)
+wykres11$Sezon <- as.factor(wykres11$Sezon)
+wykres11 <- wykres11 %>%group_by(Sezon,Kraj) %>%  summarise(
+    suma_porazek = sum(Porazki),
+    suma_remisow = sum(Remisy),
+    suma_zwyciestw = sum(Zwyciestwa),
+    suma_punktow = sum(Punkty),
+    suma_meczow = sum(Liczba_meczow),
+    suma_zdobytych_goli = sum(Gole_zdobyte),
+    suma_straconych_goli = sum(Gole_stracone),
+    wspolny_bilans = sum(Bilans_goli)
+  ) %>%
+  mutate(
+    Gol_na_mecz = round((suma_zdobytych_goli / suma_meczow), 4),
+    Stracony_gol_na_mecz = round(suma_straconych_goli / suma_meczow, 4),
+    Punkt_na_mecz = suma_punktow / suma_meczow,
+    Sredni_bilans = round(wspolny_bilans / suma_meczow, 4),
+    Procent_zwyciestw =round( suma_zwyciestw / suma_meczow,4),
+    Procent_remisow = round(suma_remisow / suma_meczow,4),
+    Procent_porazek = round(suma_porazek / suma_meczow,4) )
+
+xyz <- expand.grid(X=wykres11$Kraj)
+xyz$Y <- wykres11$Sezon
+xyz$Z <- wykres11$Punkt_na_mecz
+g12 <- levelplot(Z ~ X*Y, data=xyz  ,xlab="X",
+          main="Średnia punktów na mecz",
+          at = seq(1.3, 1.9, by=0.1),
+          col.regions=heat.colors(10),
+          scales = list(cex.axis = 0.7),
+           panel.width = unit(1.5, "cm"))
+grid.arrange(g12)
+
+```
+
+  Jednak jeśli chcemy porównywać jakość gospodarzy, najważniejsze są punkty. To one decydują o kolejności drużyn w tabeli. Powyższa heatmapa wartości średniej punktu na mecz w zależności od ligi i sezonu. Im kolor jaśniejszy tym wartość jest większa. Wartość 2023/2024 dla Brazyli jest biała ponieważ rozgrywki w tym sezonie jescze sie nie rozpoczęły. Widać z wykresu, że to Brazylijczycy najlepiej punktowali u siebie co wynikało również z wcześniejszej wizualizacji. Jednak najciekawszym aspektem nie są Brazylijczycy a przedziałka z oznaczeniem "2020/2021"- sezonu znajdującego się w całości podczas pandemii koronawirusa. Wartości dla tej kolumny są generalnie bardzo niskie co oznacza, że w tym sezonie gospodarze odnosili słabe wyniki a napewno gorsze niż w innych latch. Jest to obserwacja kluczowa dla analizy ponieważ sugeruje ona, że gdy kibiców na stadionach nie było gospodarze grali gorzej niż zwykle co świadczy jednak o wadze kibiców w współczesnym futbolu.
+```{r,fig.align="center", echo=FALSE, message=FALSE}
+library(ggplot2)
+wykres12 <- dane1
+wykres12$Kraj <- as.factor(wykres12$Kraj)
+wykres12 <- wykres12 %>% mutate(proc_zwy=(Zwyciestwa/Liczba_meczow)*100)
+g13 <- ggplot(wykres12,aes(x=Kraj,y=proc_zwy,fill=Kraj))+geom_violin()+geom_boxplot()+ 
+  scale_fill_manual(values = colors_border)+theme_minimal()+labs(title = "Rozkład procent zwycięstw gospodarzy w poszczególnych krajach",y="Procent zwycięstw")+theme(plot.title = element_text(hjust = 0.5))+ theme(legend.position = "none")
+g13
+```
+
+  Powyższy wykres koncentruje się na analizie rozkładu procentowych zwycięstw drużyn gospodarzy. Im szersza talia, tym więcej obserwacji uwzględnionych zostało w analizie. Z obserwacji wykresu wynika, że wszystkie ligi zagraniczne prezentują zbliżone wartości procentowe. Jednakże, wyjątkiem jest pudełko reprezentujące Polskę. Jest ono delikatnie mniejsze i mniej rozległe niż w przypadku pozostałych lig.
+
+To mniejsze i bardziej zwężone pudełko sugeruje, że średnia liczba zwycięstw na mecz w Polskiej Ekstraklasie wykazuje mniejszą zmienność w porównaniu do lig zagranicznych. Taka obserwacja może wskazywać na to, że wyniki drużyn gospodarzy w Polskiej lidze są bardziej skoncentrowane wokół pewnej średniej wartości. Innymi słowy, w Ekstraklasie istnieje mniejszy zakres prawdopodobieństwa, że gospodarz meczu odniesie zwycięstwo.
+
+Warto zauważyć, że największa koncentracja wartości w Polskiej Ekstraklasie przypada na około 40%, co oznacza, że istnieje tendencja do tego, aby większość drużyn gospodarzy wygrywała około 40% swoich meczów.
+
+## Czego się spodziewać idąc na stadion?
+```{r,fig.align="center", echo=FALSE,fig.width=14, message=FALSE}
+library(hrbrthemes)
+wykres13 <- dane1
+wykres13 <- wykres13 %>% mutate(ile_goli=Gole_zdobyte+Gole_stracone)
+srednia <- mean(wykres13$ile_goli)
+mediana <- median(wykres13$ile_goli)
+odchylenie_std <- sd(wykres13$ile_goli)
+srednia1 <- mean(wykres13$Gole_zdobyte)
+mediana1 <- median(wykres13$Gole_zdobyte)
+odchylenie_std1 <- sd(wykres13$Gole_zdobyte)
+
+g14 <-  ggplot(data=wykres13, aes(x=ile_goli)) +
+    geom_density(adjust=1.5, alpha=0.6,fill="darkblue",size=1) +
+  geom_vline(xintercept = mediana, linetype = "dashed", color = "orange", size = 0.7)+ theme_minimal() +labs(y="Gęstość",x="Łączna liczba goli",title = "Rozkład liczby goli w ciągu roku na stadionie")+theme(plot.title = element_text(hjust = 0.5))
+  #+ geom_area(aes(xmin = srednia - odchylenie_std,  #xmax = srednia + odchylenie_std), fill = "lightgray", alpha = 0.5)+   
+ 
+ mediana1 <- median(wykres13$Gole_zdobyte)
+ g15 <-  ggplot(data=wykres13, aes(x=Gole_zdobyte)) +
+    geom_density(adjust=1.5, alpha=0.5,fill="yellow",size=1) +
+  geom_vline(xintercept = mediana1, linetype = "dashed", color = "black", size = 0.7)+ theme_minimal() +labs(y="Gęstość",x="Łączna liczba goli gospodarzy",title = "Rozkład liczby goli gospodarzy w ciągu roku na stadionie")+theme(plot.title = element_text(hjust = 0.5))
+grid.arrange(g14,g15,ncol=2)
+```
+Powyższe dwa wykresy przedstawiają rozkład łącznej liczby goli zdobytych przez drużyny gospodarzy w sezonie (wykres żółty) oraz rozkład łącznej liczby goli na stadionach zarówno gospodarzy, jak i gości (wykres niebieski). Na niebieskim wykresie zaznaczono medianę wynoszącą 47, a według własnych obliczeń średnia wynosi 46.8, a odchylenie standardowe wynosi około 11. Po analizie danych, można stwierdzić, że kibic udający się na losowy stadion i uczestniczący we wszystkich domowych meczach ligowych, będzie świadkiem od 36 do 58 bramek.
+
+Natomiast na żółtym wykresie przedstawiono jedynie ilość goli zdobytych przez drużyny gospodarzy. Po obliczeniu danych stwierdzono, że mediana wynosi 25, a średnia to 26.3, a odchylenie standardowe wynosi około 10. To oznacza, że połowa drużyn gospodarzy zdobywała 25 lub mniej goli w sezonie. Zakres ten wskazuje na mniejszą zmienność wyników w porównaniu do ogólnego rozkładu (niebieski wykres). Po własnych obliczeniach można przyjąć, że kibic oglądający gry swojej drużyny średnio widzi od 16 do 36 goli w sezonie, co sugeruje mniejszą zmienność wyników.
+
+## Rekordy w grze gospodarzy
+```{r, echo=FALSE, message=FALSE,warning=FALSE}
+library(plotly)
+wykres14 <- dane1 %>%filter(Sezon!="2023/2024" ) %>%  mutate(Sredni_bilans=round(Bilans_goli/Liczba_meczow,4),Punkt_na_mecz=round(Punkty/Liczba_meczow,4))
+g16 <- ggplot(wykres14,aes(x=Punkt_na_mecz,y=Sredni_bilans, label = Klub,fill=Kraj))+geom_point(aes(text = paste("Nazwa klubu:",Klub,"\n Sezon:", Sezon,"\n Stadion:", Nazwa_stadionu,"\n Pojemność:",Pojemnosc,"\n Punkt na mecz:",Punkt_na_mecz)))+
+  geom_smooth(method="auto" , color="green", fill="#69b3a2", se=TRUE)+theme_bw()+labs(x="Punkt na mecz",y="Średni billans bramek",title="Występy gospopdarzy w ostatnich 12 latach") #+scale_fill_manual(values = colors_border)
+g16 <- ggplotly(g16 ,tooltip = "text")
+g16
+```
+  
+ Powyższy wykres prezentuje wyniki drużyn w meczach domowych z wszystkich analizowanych sezonów, z wyłączeniem aktualnie trwającego. Przyjąłem za kryteria statystykę punktów na mecz oraz średni bilans bramek, czyli bilans podzielony przez liczbę rozegranych meczów. Wykres ten można interpretować jako ogólną tabelę piłkarską meczów rozegranych u siebie, gdzie liczba punktów, a następnie bilans bramek decydują o pozycji drużyny w tej "tabeli". Dzięki niemu można wyróżnić najlepsze i najgorsze drużyny w meczach domowych z ostatnich 12 lat.
+
+Najwybitniejszym zespołem pod względem statystyki punktów na mecz jest Juventus Turyn z sezonu 2013/2014. Drużyna z Allianz Stadium wygrała w tamtym sezonie wszystkie domowe spotkania, co stanowi unikalny przypadek w analizowanych sezonach. Z kolei najgorzej wypadła drużyna Greuther Furth. Niemiecki zespół w sezonie 2012/2013 osiągnął statystykę punktów na mecz wynoszącą 0.2353, co oznacza, że zdobywał średnio jeden punkt (czyli remis) w co czwartym meczu u siebie.
+
+Jeśli zaś chodzi o różnicę bramek, najgorszy bilans miał Norwich City w sezonie 2021/2022, natomiast najlepszym zdecydowanie okazał się Ajax Amsterdam w rozgrywkach Eredivisie w sezonie 2018/2019.
+```{r,echo=FALSE, message=FALSE,warning=FALSE}
+library(plotly)
+wykres15 <- dane1 %>%filter(Sezon!="2023/2024") %>% mutate(Srednie_gole_stracone=round(Gole_stracone/Liczba_meczow,4),Srednie_gole_zdobyte=round(Gole_zdobyte/Liczba_meczow,4),suma_goli_na_mecz=round((Gole_zdobyte+Gole_stracone)/Liczba_meczow,4))
+g16 <- ggplot(wykres15,aes(x=Srednie_gole_zdobyte,y=Srednie_gole_stracone, label = Klub,fill=Kraj))+geom_point(aes(text = paste("Nazwa klubu:",Klub,"\n Sezon:", Sezon,"\n Stadion:", Nazwa_stadionu,"\n Suma goli na mecz:",suma_goli_na_mecz)))+
+  geom_smooth(method="auto" , color="yellow", fill="#69b3a2", se=TRUE)+theme_bw()+labs(title ="Najbardziej bramkostrzelne stadiony",x="Strzelone gole na mecz",y="Stracone gole na mecz") #+scale_fill_manual(values = colors_border)
+g16 <- ggplotly(g16 ,tooltip = "text")
+g16
+```
+Ostatnia prezentowana wizualizacja ukazuje występy drużyn wraz z ich straconymi i zdobytymi bramkami, z danymi analogicznymi do poprzedniego wykresu. Z tej wizualizacji można wyciągnąć wiele ciekawych wniosków. Najlepszą defensywą w analizowanych danych wykazała się portugalska drużyna FC Porto w sezonie 2014/2015, co jest zauważalne przez punkt tej drużyny, który znajduje się najbliżej osi x. Z kolei pod względem efektywności strzeleckiej wyraźnie przodował Ajax Amsterdam w rekordowym sezonie 2018/2019. Natomiast drużyna rozgrywająca swoje domowe mecze na stadionie Stade Gaston-Gerard, czyli francuskie Dijon FCO, w sezonie 2020/2021 była najmniej skuteczna pod względem zdobytych bramek.
+
+Wykres pozwala także ocenić, które stadiony były najbardziej atrakcyjne dla kibiców, a które najmniej, czyli gdzie łącznie padało najwięcej i najmniej bramek. Te wartości można odczytać z obszarów najbardziej odchylonych w prawy górny róg oraz lewy dolny róg wykresu. Najwięcej emocji dla kibiców dostarczały mecze na Allianz Arena w sezonie 2020/2021, gdzie w spotkaniach Bayernu Monachium padło średnio aż 5 goli na mecz. Z kolei najmniej widowiskowe mecze oglądali kibice brazylijskiego Corinthians na stadionie Neo Quimica Arena w sezonie 2012/2013, gdzie średnio padał zaledwie 1.1579 gol na mecz.
+
+## Podusmowanie
+Analiza danych dotyczących piłki nożnej i wpływu kibiców na wyniki gospodarzy przynosi kilka istotnych wniosków. Pierwszym zauważalnym aspektem jest bezpośredni wpływ pandemii koronawirusa na frekwencję na stadionach. Sezon 2020/2021 charakteryzował się znacznym spadkiem liczby kibiców, co było bezpośrednim efektem restrykcji związanych z pandemią.
+
+Analiza danych finansowych pokazuje, że ligi o większej popularności, takie jak angielska Premier League, niemiecka Bundesliga czy hiszpańska LaLiga, mają większe obroty z transferów piłkarzy. Z drugiej strony, ligi takie jak Polska Ekstraklasa mają niższe obroty, co może wynikać z mniejszej popularności i niższego poziomu finansowego.
+
+W kontekście aspektów sportowych, kluby Legia Warszawa i Lech Poznań w Polskiej Ekstraklasie przyciągają największą liczbę kibiców na swoje mecze, co przekłada się również na sukcesy sportowe. Jednak obserwacje dotyczące innych klubów wskazują, że popularność nie zawsze idzie w parze z wynikami sportowymi.
+
+Czas pandemiczny zmniejszył ilość zdobywanych punktów przez gospodarzy.
+
+Wiadomo ile spodziewać się goli na stadionie w ciągu roku.
+
+Korelacje między aspektami sportowymi a liczbą kibiców wskazują, że większa frekwencja na stadionie może wpływać na wyniki sportowe drużyn. Wartości korelacji sugerują, że im więcej kibiców, tym lepsze wyniki, co może być zarówno przyczyną, jak i skutkiem sukcesu sportowego klubu.
+
+Podział gospodarzy ze względu na poziom sportowy pokazuje, że istnieją trzy wyraźne klastry drużyn: te, które grają słabo, te, które są średnie, i te, które osiągają sukcesy. Kluby w Brazylii wyróżniają się jako gospodarze osiągający najlepsze wyniki sportowe.
+
+Ostatecznie, analiza danych sugeruje, że kibice mają istotny wpływ na wyniki sportowe drużyn, zarówno pod względem frekwencji na stadionie, jak i ich zaangażowania finansowego.
+
+
+
+
+
