@@ -1,0 +1,808 @@
+---
+title: "projekt"
+author: "Igor Rybiński"
+date: "2023-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(tidyverse)
+library(rvest)
+library(purrr)
+```
+```{r}
+#Dane do 16 kolejki PKO
+base_link <- "https://www.transfermarkt.pl/pko-bp-ekstraklasa/besucherzahlen/wettbewerb/PL1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Ekstraklasa.csv",row.names = FALSE)
+
+```
+
+
+```{r}
+#Dane do 13 kolejki Bundesligi
+base_link <- "https://www.transfermarkt.pl/bundesliga/besucherzahlen/wettbewerb/L1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Bundesliga.csv",row.names = FALSE)
+
+```
+
+```{r}
+#Dane do 13 kolejki Bundesligi
+base_link <- "https://www.transfermarkt.pl/premier-league/besucherzahlen/wettbewerb/GB1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Premierleague.csv",row.names = FALSE)
+
+```
+
+```{r}
+base_link <- "https://www.transfermarkt.pl/laliga/besucherzahlen/wettbewerb/ES1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_LaLiga.csv",row.names = FALSE)
+```
+
+```{r}
+base_link <- "https://www.transfermarkt.pl/serie-a/besucherzahlen/wettbewerb/IT1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_SerieA.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.pl/ligue-1/besucherzahlen/wettbewerb/FR1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Ligue1.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.pl/eredivisie/besucherzahlen/wettbewerb/NL1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Eredivisie.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.com/jupiler-pro-league/besucherzahlen/wettbewerb/BE1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Belgijska.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.pl/liga-portugal/besucherzahlen/wettbewerb/PO1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Portugalska.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.pl/campeonato-brasileiro-serie-a/besucherzahlen/wettbewerb/BRA1/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+library(dplyr)
+for(link in paste0(base_link,12:22)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+View(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Brazylia.csv",row.names = FALSE)
+```
+```{r}
+base_link <- "https://www.transfermarkt.pl/superliga/besucherzahlen/wettbewerb/AR1N/plus/1?saison_id=20"
+wszystkie_sezony <- data.frame()
+
+for(link in paste0(base_link,12:23)){
+  page_table <- read_html(link)
+
+stadium_name <- page_table %>%
+  html_nodes("td.hauptlink") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+length(stadium_name)
+stadium_name_eks <- c()
+stadium_name_proc <- c()
+for (i in 1:length(stadium_name)) {
+  if(i%%2!=0){
+  stadium_name_eks <- c(stadium_name_eks,stadium_name[i])}
+  if(i%%2==0){
+  stadium_name_proc <-c(stadium_name_proc,stadium_name[i])}
+}
+club_name <- page_table %>%
+  html_nodes("td") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+club_name <- club_name[6:length(club_name)]
+club_name1 <- c()
+for (i in 1:length(club_name)) {
+  if(i%%11==0){
+  club_name1 <-c(club_name1,club_name[i])}
+}
+stat_name <- page_table %>%
+  html_nodes("td.rechts") %>% #gdyby tutaj by?o "table" ppopbra?o by wszystkie tabele ze strony
+  html_text()
+stat_name <- stat_name[6:length(stat_name)]
+pojemnosc <- c()
+liczba_widzów <- c()
+srednia <- c()
+indeksy_1 <- seq(1, length(stat_name), by = 4)
+indeksy_2 <- seq(2, length(stat_name), by = 4)
+indeksy_3 <- seq(3, length(stat_name), by = 4)
+
+ pojemnosc<- stat_name[indeksy_1]
+liczba_widzów <- stat_name[indeksy_2]
+srednia <- stat_name[indeksy_3]
+cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_name1))
+Kibice <- data.frame(club_name1,stadium_name_eks,pojemnosc,liczba_widzów,srednia,stadium_name_proc,sezon)
+wszystkie_sezony <- bind_rows(wszystkie_sezony,Kibice)
+}
+
+colnames(wszystkie_sezony) <- c("Klub","Nazwa_stadionu","Pojemnosc","Liczba_widzow","Srednia","Wykorzystanie","Sezon")
+view(wszystkie_sezony)
+write.csv(wszystkie_sezony,file = "Frekwencja_Argentyna.csv",row.names = FALSE)
+```
+
+```{r}
+library(rvest)
+library(Rcrawler)
+library(stringr)
+tabele <- function(link1){
+
+base_link <- link1
+tabela <- data.frame()
+club_names <- c()
+for(link in paste0(base_link,12:22)){
+  page_table <- read_html(link)
+  crawl <- Rcrawler(link, dataUrlfilter = "spielplan/verein", MaxDepth = 1)
+  web_crawling_specific_urls <- INDEX$Url
+  
+  for(specific_website in web_crawling_specific_urls){
+  wodka <- read_html(specific_website)
+  print(specific_website)
+  club_name <- wodka %>%
+  html_nodes("h1.data-header__headline-wrapper.data-header__headline-wrapper--oswald") %>%
+  html_text()
+  club_name <- str_replace(club_name,"\\s"," ")
+  club_names <- c(club_names,club_name)
+
+  }
+#  place <- page_table %>%
+ ## html_text()
+  
+  stat <- page_table %>%
+  html_nodes("td.zentriert") %>%
+  html_text()
+  ile_meczy <- c()
+  zwyciestwa <- c()
+  remisy <- c()
+  porazki <- c()
+  bramki <- c()
+  bilans <- c()
+  punkty <- c()
+  indeksy_1 <- seq(2, length(stat), by = 8)
+  indeksy_2 <- seq(3, length(stat), by = 8)
+  indeksy_3 <- seq(4, length(stat), by = 8)
+  indeksy_4 <- seq(5, length(stat), by = 8)
+  indeksy_5 <- seq(6, length(stat), by = 8)
+  indeksy_6 <- seq(7, length(stat), by = 8)
+  indeksy_7 <- seq(8, length(stat), by = 8)
+  ile_meczy <- stat[indeksy_1]
+  zwyciestwa <- stat[indeksy_2]
+  remisy <- stat[indeksy_3]
+  porazki <- stat[indeksy_4]
+  bramki <- stat[indeksy_5]
+  bilans <- stat[indeksy_6]
+  punkty <- stat[indeksy_7]
+  cyfra <- as.numeric(substr(link,nchar(link) - 1, nchar(link)))
+sezon <- rep(paste0("20",cyfra,"/20",cyfra+1),times=length(club_names))
+gole_zdobyte <- str_extract(bramki,"[0-9]+\\:")
+gole_zdobyte <- str_extract(gole_zdobyte,"[0-9]+")
+gole_stracone <- str_extract(bramki,"\\:[0-9]+")
+gole_stracone <- str_extract(gole_stracone,"[0-9]+")
+  
+  tabela_s <- data.frame(club_names,as.numeric(ile_meczy),as.numeric(zwyciestwa),as.numeric(remisy),as.numeric(porazki),as.numeric(gole_zdobyte),as.numeric(gole_stracone),as.numeric(bilans),as.numeric(punkty),sezon)
+  tabela <- rbind(tabela,tabela_s)
+  club_names <- c()
+  }
+  
+colnames(tabela) <- c("Klub","Liczba_meczow","Zwyciestwa","Remisy","Porazki","Gole_zdobyte","Gole_stracone","Bilans_goli","Punkty","Sezon")
+return(tabela)
+}
+##eks <- tabele("https://www.transfermarkt.pl/pko-ekstraklasa/heimtabelle/wettbewerb/PL1/saison_id/20")
+#write.csv(eks,"Tabele_Ekstraklasa.csv",row.names = FALSE)
+#ang <- tabele("https://www.transfermarkt.pl/premier-league/heimtabelle/wettbewerb/GB1/saison_id/20")
+#write.csv(ang,"Tabele_PremierLeague.csv",row.names = FALSE)
+#ita <- tabele("https://www.transfermarkt.pl/serie-a/heimtabelle/wettbewerb/IT1/saison_id/20")
+#write.csv(ita,"Tabele_SerieA.csv",row.names = FALSE)
+#ger <- tabele("https://www.transfermarkt.pl/bundesliga/heimtabelle/wettbewerb/L1/saison_id/20")
+#write.csv(ger,"Tabele_Bundesliga.csv",row.names = FALSE)
+#por <- tabele("https://www.transfermarkt.pl/liga-nos/heimtabelle/wettbewerb/PO1/saison_id/20")
+#write.csv(por,"Tabele_Portugalska.csv",row.names = FALSE)
+#esp <- tabele("https://www.transfermarkt.pl/laliga/heimtabelle/wettbewerb/ES1/saison_id/20")
+#write.csv(esp,"Tabele_LaLiga.csv",row.names = FALSE)
+#ndl <- tabele("https://www.transfermarkt.pl/eredivisie/heimtabelle/wettbewerb/NL1/saison_id/20")
+#write.csv(ndl,"Tabele_Eredivisie.csv",row.names = FALSE)
+#fra <- tabele("https://www.transfermarkt.pl/ligue-1/heimtabelle/wettbewerb/FR1/saison_id/20")
+#write.csv(fra,"Tabele_Ligue1.csv",row.names = FALSE)
+#bel <- tabele("https://www.transfermarkt.pl/jupiler-pro-league/heimtabelle/wettbewerb/BE1/saison_id/20")
+#write.csv(bel,"Tabele_Belgia.csv",row.names = FALSE)
+bra <- tabele("https://www.transfermarkt.pl/campeonato-brasileiro-serie-a/heimtabelle/wettbewerb/BRA1/saison_id/20")
+bra
+write.csv(bra,"Tabele_Brazylia.csv",row.names = FALSE)
+
+```
+
+```{r}
+library(dplyr)
+library(readr)
+library(stringr)
+dolaczanie_kraju <- function(x,y,z){
+x <- read.csv(y)
+Kraj <- rep(z,length(x$Klub))
+x <- data.frame(x,Kraj)
+return(x)
+}
+bel <- dolaczanie_kraju(bel,"Frekwencja_Belgijska.csv","Belgia")
+bra <- dolaczanie_kraju(bra,"Frekwencja_Brazylia.csv","Brazylia")
+bun <- dolaczanie_kraju(bun,"Frekwencja_Bundesliga.csv","Niemcy")
+eks <- dolaczanie_kraju(eks,"Frekwencja_Ekstraklasa.csv","Polska")
+erd <- dolaczanie_kraju(erd,"Frekwencja_Eredivisie.csv","Holandia")
+esp <- dolaczanie_kraju(esp,"Frekwencja_LaLiga.csv","Hiszpania")
+fra <- dolaczanie_kraju(fra,"Frekwencja_Ligue1.csv","Francja")
+por <- dolaczanie_kraju(por,"Frekwencja_Portugalska.csv","Portugalia")
+ang <- dolaczanie_kraju(ang,"Frekwencja_Premierleague.csv","Anglia")
+ita <- dolaczanie_kraju(ita,"Frekwencja_SerieA.csv","Włochy")
+frekwencja <- rbind(bel,bra,bun,eks,erd,esp,fra,por,ang,ita)
+frekwencja$Pojemnosc <- frekwencja$Pojemnosc *1000
+
+usun_pierwsza_kropke <- function(x) {
+  if (length(gregexpr("\\.", x)[[1]]) == 2) {
+    pierwsza_kropka <- regexpr("\\.", x)[[1]]
+    x <- paste0(substr(x, 1, pierwsza_kropka - 1), substr(x, pierwsza_kropka + 1, nchar(x)))
+  }
+  return(x)
+}
+
+frekwencja$Liczba_widzow <- sapply(frekwencja$Liczba_widzow, usun_pierwsza_kropke)
+frekwencja$Liczba_widzow <- parse_number(frekwencja$Liczba_widzow)
+frekwencja$Liczba_widzow <- frekwencja$Liczba_widzow*1000
+frekwencja$Wykorzystanie <- as.numeric(sub(",", ".", sub("%", "", frekwencja$Wykorzystanie)))
+write.csv(frekwencja,file = "Frekwencja_razem.csv",row.names = FALSE)
+
+```
+```{r}
+eks <- read.csv("Tabele_Ekstraklasa.csv")
+bel <- read.csv("Tabele_Belgia.csv")
+bund <- read.csv("Tabele_Bundesliga.csv")
+ere <- read.csv("Tabele_Eredivisie.csv")
+lalig <- read.csv("Tabele_LaLiga.csv")
+lig1 <- read.csv("Tabele_Ligue1.csv")
+por <- read.csv("Tabele_Portugalska.csv")
+prem <- read.csv("Tabele_PremierLeague.csv")
+seriea <- read.csv("Tabele_SerieA.csv")
+braa <- read.csv("Tabele_Brazylia.csv")
+pol <- rep("Polska",times=length(eks$Klub))
+belgia <- rep("Belgia",times=length(bel$Klub))
+niem <- rep("Niemcy",times=length(bund$Klub))
+hol <- rep("Holandia",times=length(ere$Klub))
+esp <- rep("Hiszpania",times=length(lalig$Klub))
+frek <- read.csv("Frekwencja_razem.csv")
+
+tabelki <- rbind(eks,bel,bund,ere,lalig,lig1,por,prem,seriea,braa)
+tabelki
+frek
+```
+```{r}
+library(dplyr)
+tabelki$Klub <- gsub("\\s+", " ", gsub("\n", " ", tabelki$Klub))
+tabelki$Klub <- trimws(tabelki$Klub)
+tabelki$Klub <- trimws(tabelki$Klub)
+write.csv(tabelki,file = "Tabele_razem.csv",row.names = FALSE)
+polaczone <- left_join(frek,tabelki,by=c("Klub","Sezon"))
+wiersze_na <- which(apply(is.na(polaczone), 1, any))
+nowe <- unique(polaczone$Klub[wiersze_na])
+stare <- c("FC Brügge","Cercle Brügge","SK Beveren","Mouscron-Péruwelz","VV St. Truiden","Royal Antwerpia FC","Union Saint-Gilloise","Club Athletico Paranaense","Thonon Évian Grand Genève FC","Inter Mediolan","Palermo FC","Catania FC","Parma Calcio 1913","Siena FC","US Livorno 1915","Cesena FC","AC Carpi","SPAL")
+d <- 1
+for (wzor in stare) {
+i <- 1  
+for (club in tabelki$Klub) {
+  
+if(identical(wzor,club)){
+  tabelki$Klub[i] <- nowe[d]
+  print(tabelki$Klub[i])
+ 
+}
+  i <- i+1
+}
+d <- d+1
+}
+
+g <- 1
+for (wzor1 in stare) {
+f <- 1  
+for (club1 in frek$Klub) {
+  
+if(identical(wzor1,club1)){
+  frek$Klub[f] <- nowe[g]
+  print(frek$Klub[f])
+ 
+}
+  f <- f+1
+}
+g <- g+1
+}
+polaczone1 <- left_join(frek,tabelki,by = c("Klub","Sezon"))
+polaczone1
+wiersze_na1 <- which(apply(is.na(polaczone1), 1, any))
+nowe1 <- unique(polaczone1$Klub[wiersze_na1])
+nowe1
+polaczone2 <- na.omit(polaczone1)
+write.csv(polaczone2,"Analiza.csv",row.names=FALSE)
+```
+

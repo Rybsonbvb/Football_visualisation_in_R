@@ -1,0 +1,35 @@
+# R
+
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# RStudio
+
+*.Rproj
+
+# renv
+
+renv/library/
+renv/staging/
+renv/python/
+
+# cache
+
+cache/
+*.cache
+
+# system files
+
+.DS_Store
+Thumbs.db
+
+# large outputs (optional)
+
+*.html
+*.gif
+
+# logs
+
+*.log
